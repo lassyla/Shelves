@@ -1,0 +1,196 @@
+<html>
+	<head>
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+		<script src="js/three.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/physi.js"></script>
+		
+		<script>
+            Physijs.scripts.worker = './js/physijs_worker.js';
+            Physijs.scripts.ammo = 'ammo.js';
+			var scene = new Physijs.Scene();
+            var numbroken = 0; 
+            scene.setGravity(new THREE.Vector3( 0, -10, 0 ));
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
+
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+            
+            for(i = 0; i < 3; i ++){
+                shelf = new Physijs.BoxMesh(
+                        new THREE.CubeGeometry(10, 0.2, 1.2),
+                        new THREE.MeshPhongMaterial({color:0xaaaaff}), 
+                        0 //mass of zero means no gravity
+                    );
+                shelf.receiveShadow = true;
+                shelf.position.set(0,i*-2,0);
+                scene.add(shelf); 
+            }
+
+            floor = new Physijs.BoxMesh(
+                    new THREE.CubeGeometry(50, 0.2, 50),
+                    new THREE.MeshBasicMaterial({color:0xffffff}, 0, 1), 
+                    0 
+                );
+            floor.receiveShadow = true;
+            floor.position.set(0,-8,0);
+            scene.add(floor);
+
+            wall = new Physijs.BoxMesh(
+                    new THREE.CubeGeometry(50, 50, .2),
+                    new THREE.MeshBasicMaterial({color:0xffaaff}, 0, 1), 
+                    0 
+                );
+            wall.receiveShadow = true;
+            wall.position.set(0,0,-10);
+            scene.add(wall); 
+
+
+            var objects = [];
+            var objectnames = ["sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug"]; 
+
+            var loader = new THREE.JSONLoader();
+                for(i = 0; i < 5; i++){
+                    for(j = 0; j < 3; j++){
+                        addToScene(i * 2 - 4, j * -2 + 1, 0, i*3 + j);
+                    }
+                }
+
+            var ambientLight = new THREE.AmbientLight(0xaaaaaa);
+            scene.add(ambientLight);
+
+  			camera.position.set(0, 0, 8);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+            scene.addEventListener( 'update', function() {
+                //your code. physics calculations have done updating
+            });
+
+
+			var animate = function () {
+				requestAnimationFrame( animate );
+				renderer.render(scene, camera);
+                controls.update
+			    scene.simulate();
+                
+            };
+
+			animate();
+            var raycaster = new THREE.Raycaster(); // create once
+            var mouse = new THREE.Vector2(); // create once
+
+            function onMouseDown( event ) { 
+                // calculate mouse position in normalized device coordinates 
+                // (-1 to +1) for both components 
+                mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1; 
+                mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1; 
+                rendermd(); 
+            } 
+
+            function addToScene(x, y, z, index){
+                loader.load("./" + objectnames[index] + ".json", function(geometry, material) {
+                    //var material 
+                    mesh = new Physijs.BoxMesh(geometry, material);
+                    mesh.scale.set(.5, .5, .5)
+                    mesh.position.x = x; 
+                    mesh.position.y = y; 
+                    mesh.castShadow = true; 
+                    mesh.mass = 100; 
+                    mesh.userData.id = "breakable"; 
+                    objects[index] = mesh; 
+                    scene.add(mesh);
+                    
+                });
+
+            }
+            function addToSceneBroken(x, y, z, name){
+                var brokenloader = new THREE.ObjectLoader();
+                brokenloader.load("./" + name + "broken.json", function(loaded) {
+                    while(loaded.children.length > 0) //go through each element of the scene 
+                    {
+                        var child = loaded.children.pop(); 
+                        mesh = new Physijs.BoxMesh(child.geometry, child.material)
+                        mesh.scale.set(.5, .5, .5)
+                        mesh.position.x = x; 
+                        mesh.position.y = y; 
+                        mesh.userData.id = "unbreakable"; 
+                        mesh.castShadow = true; 
+                        scene.add(mesh);
+                        mesh.applyCentralImpulse(new THREE.Vector3(0, 0, -15)); 
+                    }
+                });
+                
+            }
+
+            function rendermd() { 
+              // update the picking ray with the camera and mouse position
+              raycaster.setFromCamera( mouse, camera ); 
+              // calculate objects intersecting the picking ray var intersects =     
+              var intersects = raycaster.intersectObjects( scene.children ); 
+              var clicked = intersects[0].object;
+              if(clicked.mass != 0)
+                  {
+                      var i = (clicked.position.x + 4)/2;
+                      var j = (clicked.position.y - 1)/-2; 
+                      var index = Math.floor(i*3+j+.5); 
+                      if(clicked.userData.id == "breakable"){
+                          scene.remove(clicked);
+                          addToSceneBroken(clicked.position.x, clicked.position.y, clicked.position.z, objectnames[index]); 
+                          progress(); 
+                      }
+                      if(clicked.userData.id == "unbreakable"){
+                          clicked.applyCentralImpulse(new THREE.Vector3(1, 1, 1)); 
+                      }
+                  }
+            
+
+              renderer.render( scene, camera ); 
+            } 
+
+            function render()
+            {
+                renderer.render( scene, camera );   
+            }
+            window.addEventListener( 'mousedown', onMouseDown, false );        
+            window.requestAnimationFrame(render);
+            
+            function progress()
+            {
+                numbroken ++; 
+                var loader = new THREE.FontLoader();
+
+//                loader.load( 'fonts/helvetiker_regular.typeface.json', function ( font ) {
+//
+//                    var geometry = new THREE.TextGeometry( 'Hello three.js!', {
+//                        font: font,
+//                        size: 80,
+//                        height: 5,
+//                        curveSegments: 12,
+//                        bevelEnabled: true,
+//                        bevelThickness: 10,
+//                        bevelSize: 8,
+//                        bevelSegments: 5
+//                    } );
+//                    text = new THREE.Mesh(
+//                        geometry, 
+//                        new THREE.MeshPhongMaterial({color:0xaaaaff}),
+//                        0 //mass of zero means no gravity
+//                    );
+//                    text.position.set(0,0,0);
+//                    scene.add(shelf); 
+//
+//                } );
+
+            }
+
+		</script>
+	</body>
+</html>
