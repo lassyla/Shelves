@@ -1,16 +1,45 @@
 <html>
 	<head>
-		<title>My first three.js app</title>
+		<title>Shelves</title>
+        <div id="info">choose something that catches your eye</div>
+        <div id="whitescreen"></div>
 		<style>
-			body { margin: 0; }
-			canvas { width: 100%; height: 100% }
+			body { 
+                margin: 0;
+            }
+			canvas { 
+                width: 100%; 
+                height: 100%; 
+                background: white; 
+            }
+            #info {
+                position: absolute;
+                top: 10%;
+                width: 100%;
+                text-align: center;
+                z-index: 100;
+                display:block;
+                color: gray; 
+                font-size: 40;
+                
+                font-family: sans-serif; 
+            }
+            #whitescreen {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                text-align: center;
+                z-index: 101;
+                display:block;
+                background: white;
+            }
 		</style>
 	</head>
 	<body>
 		<script src="js/three.js"></script>
 		<script src="js/OrbitControls.js"></script>
 		<script src="js/physi.js"></script>
-		
+		<script src="js/jquery-3.2.1.min.js"></script>
 		<script>
             Physijs.scripts.worker = './js/physijs_worker.js';
             Physijs.scripts.ammo = 'ammo.js';
@@ -18,11 +47,12 @@
             var numbroken = 0; 
             scene.setGravity(new THREE.Vector3( 0, -10, 0 ));
 			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 1000 );
-
-			var renderer = new THREE.WebGLRenderer();
+            var unclickable = false; 
+			var renderer = new THREE.WebGLRenderer({alpha:true});
 			renderer.setSize( window.innerWidth, window.innerHeight );
 			document.body.appendChild( renderer.domElement );
             
+            var shelves = []
             for(i = 0; i < 3; i ++){
                 shelf = new Physijs.BoxMesh(
                         new THREE.CubeGeometry(10, 0.2, 1.2),
@@ -32,25 +62,28 @@
                 shelf.receiveShadow = true;
                 shelf.position.set(0,i*-2,0);
                 scene.add(shelf); 
+                shelves[i] = shelf; 
             }
-
-            floor = new Physijs.BoxMesh(
-                    new THREE.CubeGeometry(50, 0.2, 50),
-                    new THREE.MeshBasicMaterial({color:0xffffff}, 0, 1), 
-                    0 
-                );
-            floor.receiveShadow = true;
-            floor.position.set(0,-8,0);
+            material = new THREE.MeshLambertMaterial({color:0xff11ff}, 0, 1)
+            material.opacity = 0; 
+            material.transparent = true; 
+            
+            floor = new Physijs.BoxMesh(new THREE.CubeGeometry(50, 0.2, 50), material, 0);
+            floor.position.set(0,-20,0);
             scene.add(floor);
-
-            wall = new Physijs.BoxMesh(
-                    new THREE.CubeGeometry(50, 50, .2),
-                    new THREE.MeshBasicMaterial({color:0xffaaff}, 0, 1), 
-                    0 
-                );
-            wall.receiveShadow = true;
-            wall.position.set(0,0,-10);
-            scene.add(wall); 
+//
+            backwall = new Physijs.BoxMesh(new THREE.CubeGeometry(25, 40, 0.2), material, 0);
+            backwall.position.set(0,0,-10);
+            scene.add(backwall); 
+            frontwall = new Physijs.BoxMesh(new THREE.CubeGeometry(25, 40, 0.2), material, 0);
+            frontwall.position.set(0, 0 ,10);
+            scene.add(frontwall); 
+            leftwall = new Physijs.BoxMesh(new THREE.CubeGeometry(0.2, 40, 25), material, 0);
+            leftwall.position.set(-10, 0, 0);
+            scene.add(leftwall); 
+            rightwall = new Physijs.BoxMesh(new THREE.CubeGeometry(0.2, 40, 25), material, 0);
+            rightwall.position.set(10, 0, 0);
+            scene.add(rightwall); 
 
 
             var objects = [];
@@ -69,7 +102,11 @@
   			camera.position.set(0, 0, 8);
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
-
+            controls.minDistance = 2;
+            controls.maxDistance = 10;
+            controls.enableDamping = true;
+            controls.DampingFactor = 0.3;
+            controls.rotateSpeed = 0.2; 
             scene.addEventListener( 'update', function() {
                 //your code. physics calculations have done updating
             });
@@ -78,7 +115,7 @@
 			var animate = function () {
 				requestAnimationFrame( animate );
 				renderer.render(scene, camera);
-                controls.update
+                controls.update(); 
 			    scene.simulate();
                 
             };
@@ -90,6 +127,7 @@
             function onMouseDown( event ) { 
                 // calculate mouse position in normalized device coordinates 
                 // (-1 to +1) for both components 
+                if(unclickable) return; 
                 mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1; 
                 mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1; 
                 rendermd(); 
@@ -124,7 +162,7 @@
                         mesh.userData.id = "unbreakable"; 
                         mesh.castShadow = true; 
                         scene.add(mesh);
-                        mesh.applyCentralImpulse(new THREE.Vector3(0, 0, -15)); 
+                        mesh.applyCentralImpulse(new THREE.Vector3(0, 0, -10)); 
                     }
                 });
                 
@@ -143,11 +181,12 @@
                       var index = Math.floor(i*3+j+.5); 
                       if(clicked.userData.id == "breakable"){
                           scene.remove(clicked);
+                          objects[index] = null; 
                           addToSceneBroken(clicked.position.x, clicked.position.y, clicked.position.z, objectnames[index]); 
                           progress(); 
                       }
                       if(clicked.userData.id == "unbreakable"){
-                          clicked.applyCentralImpulse(new THREE.Vector3(1, 1, 1)); 
+                          clicked.applyCentralImpulse(new THREE.Vector3(0, 0, -5));
                       }
                   }
             
@@ -166,30 +205,88 @@
             {
                 numbroken ++; 
                 var loader = new THREE.FontLoader();
-
-//                loader.load( 'fonts/helvetiker_regular.typeface.json', function ( font ) {
-//
-//                    var geometry = new THREE.TextGeometry( 'Hello three.js!', {
-//                        font: font,
-//                        size: 80,
-//                        height: 5,
-//                        curveSegments: 12,
-//                        bevelEnabled: true,
-//                        bevelThickness: 10,
-//                        bevelSize: 8,
-//                        bevelSegments: 5
-//                    } );
-//                    text = new THREE.Mesh(
-//                        geometry, 
-//                        new THREE.MeshPhongMaterial({color:0xaaaaff}),
-//                        0 //mass of zero means no gravity
-//                    );
-//                    text.position.set(0,0,0);
-//                    scene.add(shelf); 
-//
-//                } );
-
+                console.log(numbroken); 
+                switch(numbroken){
+                    case 1: 
+                        updateText("hi", "bye");
+                        break; 
+                    case 2: 
+                        updateText("hello", "bello");
+                        break; 
+                    case 3: 
+                        updateText("mello", "yello");
+                        break;
+                    case 4: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 5: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 6: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 7: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 8: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 9: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 10: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 11: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 12: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 13: 
+                        updateText("mello", "yello");
+                        break;  
+                    case 14: 
+                        unclickable = true; 
+                        setTimeout(function(){endscreen();}, 1000);
+                }
             }
+            function endscreen() 
+            {
+                var last = null;
+                for(var i = 0; i < objects.length; i++)
+                {
+                    if(objects[i] != null)
+                        last = objects[i]; 
+                }
+                last.applyCentralImpulse(new THREE.Vector3(0, 0, -100)); 
+                $("#whitescreen").fadeIn("slow"); 
+                setTimeout(function(){
+                    $("#whitescreen").fadeOut("slow"); 
+                    scene.remove(last); 
+                    last.scale.set(1, 1, 1); 
+                    last.position.set(0, -14, 0);
+                    last.userData.id = "unbreakable"; 
+                    scene.add(last); 
+                    camera.position.set(1, -15, 1); 
+                    camera.zoom = 3; 
+                    controls.target = new THREE.Vector3(0, -19, 0); 
+                    controls.maxPolarAngle = Math.PI /2; 
+                    unclickable = false; 
+                    controls.update();
+                }, 1000);
+            }
+            function updateText(text1, text2)
+            {                console.log(text1); 
+
+                unclickable = true; 
+                document.getElementById("info").innerHTML = text1; 
+                setTimeout(function(){
+                            document.getElementById("info").innerHTML = text2; 
+                            unclickable = false;
+                }, 2000); 
+            }
+            $("#whitescreen").fadeOut("slow"); 
 
 		</script>
 	</body>
