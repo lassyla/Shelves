@@ -69,7 +69,7 @@ function setUpObjects() {
         shelf = new Physijs.BoxMesh(
             new THREE.CubeGeometry(10, 0.2, 1.2),
             new THREE.MeshLambertMaterial({
-                color: 0xcccccc
+                color: 0xaaaaaa
             }),
             0 //mass of zero means no gravity
         );
