@@ -5,7 +5,7 @@ var unclickable = false;
 var numbroken = 0;
 var shelves = []
 var objects = [];
-var objectnames = ["cube", "sliug", "sliug", "sliug", "pumpkin", "cup", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug"];
+var objectnames = ["sliug", "pie", "sliug", "mountain", "sliug", "cup", "ball", "books", "spider", "sliug", "plant", "tetra", "random", "phone", "sliug"];
 
 Physijs.scripts.worker = './js/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
@@ -27,10 +27,22 @@ var ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 //code from https://solutiondesign.com/blog/-/blogs/webgl-and-three-js-lighting/
-var bluePoint = new THREE.PointLight(0xffffff, .2, 150);
-bluePoint.position.set( 0, 10, 0 );
+var bluePoint = new THREE.PointLight(0x0033ff, 1, 150);
+bluePoint.position.set( 70, 5, 70 );
 scene.add(bluePoint);
-scene.add(new THREE.PointLightHelper(bluePoint, 3));
+
+var redPoint = new THREE.PointLight(0xff3300, 1, 150);
+redPoint.position.set( -70, 5, 70 );
+scene.add(redPoint);
+
+var yellowPoint = new THREE.PointLight(0xffff00, .3, 150);
+yellowPoint.position.set( 0, 70, 70 );
+scene.add(yellowPoint);
+
+//var greenPoint = new THREE.PointLight(0x33ff00, .5, 150);
+//greenPoint.position.set( -70, 5, 70 );
+//scene.add(greenPoint);
+//scene.add(new THREE.PointLightHelper(greenPoint, 3));
 
 var controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.minDistance = 2;
@@ -121,7 +133,8 @@ function onMouseDown(event) {
 //loads objects in at position x, y, z. 
 function addToScene(x, y, z, index) {
     loader.load("./models/" + objectnames[index] + ".json", function(geometry, material) {
-        mesh = new Physijs.BoxMesh(geometry, material);
+        //smesh = new Physijs.BoxMesh(geometry, new THREE.MeshStandardMaterial()); //rainbow 
+        mesh = new Physijs.BoxMesh(geometry, material); //original
         mesh.scale.set(.5, .5, .5)
         mesh.position.x = x;
         mesh.position.y = y;
@@ -140,15 +153,16 @@ function addToSceneBroken(x, y, z, name) {
         while (loaded.children.length > 0) //go through each element of the scene 
         {
             var child = loaded.children.pop();
-            mesh = new Physijs.BoxMesh(child.geometry, child.material)
-            mesh.scale.set(.5, .5, .5)
+            mesh = new Physijs.BoxMesh(child.geometry, child.material) //original
+            //mesh = new Physijs.BoxMesh(child.geometry, new THREE.MeshStandardMaterial()); //rainbow
+            mesh.scale.set(.5, .5, .5);
             mesh.position.x = x - child.position.x;
             mesh.position.y = y - child.position.y;
             mesh.position.z = - child.position.z; 
             mesh.userData.id = "unbreakable";
             mesh.castShadow = true;
             scene.add(mesh);
-            mesh.applyCentralImpulse(new THREE.Vector3(0, 0, -10));
+            mesh.applyCentralImpulse(new THREE.Vector3(0, 0, -15));
         }
     });
 }
@@ -171,7 +185,7 @@ function rendermd() {
             progress();
         }
         if (clicked.userData.id == "unbreakable") {
-            clicked.applyCentralImpulse(new THREE.Vector3(0, 0, -5));
+            clicked.applyCentralImpulse(new THREE.Vector3(0, 0, -15));
         }
     }
     render();
@@ -196,7 +210,7 @@ function progress() {
             updateText("why didn't you protect me?", "do you love anything else?");
             break;
         case 4:
-            updateText("again?", "choose something that reminds you of your mother.");
+            updateText("was it really love?", "choose something that reminds you of your mother.");
             break;
         case 5:
             updateText("was i too ____?", "choose something that reminds you of your father.");
@@ -205,7 +219,7 @@ function progress() {
             updateText("did i forget to ____?", "choose something you would like as a gift.");
             break;
         case 7:
-            updateText("you like me because ____", "choose something funny.");
+            updateText("you like me because ____.", "choose something funny.");
             break;
         case 8:
             updateText("why did i make you smile?", "blink five times rapidly and choose the first thing you see.");
@@ -220,10 +234,10 @@ function progress() {
             updateText("why me?", "choose something for a person you love");
             break;
         case 12:
-            updateText("my true feelings are ____", "choose the most desirable thing you see.");
+            updateText("my true feelings are ____.", "choose the most desirable thing you see.");
             break;
         case 13:
-            updateText("...", "choose");
+            updateText("...", "choose the thing that isn't the worst.");
             break;
         case 14:
             unclickable = true;
@@ -235,7 +249,7 @@ function progress() {
 
 //switch in camera after the second to last object falls
 function endscreen() {
-    updateText("", "good job.");
+    updateText("", "");
     var last = null;
     for (var i = 0; i < objects.length; i++) {
         if (objects[i] != null)
