@@ -1,2 +1,0 @@
-# Shelves
-Concept Studio project
