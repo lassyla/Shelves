@@ -5,7 +5,7 @@ var unclickable = false;
 var numbroken = 0;
 var shelves = []
 var objects = [];
-var objectnames = ["sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug"];
+var objectnames = ["cube", "sliug", "sliug", "sliug", "pumpkin", "cup", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug", "sliug"];
 
 Physijs.scripts.worker = './js/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
@@ -23,8 +23,14 @@ document.body.appendChild(renderer.domElement);
 
 var loader = new THREE.JSONLoader();
 
-var ambientLight = new THREE.AmbientLight(0xaaaaaa);
+var ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
+
+//code from https://solutiondesign.com/blog/-/blogs/webgl-and-three-js-lighting/
+var bluePoint = new THREE.PointLight(0xffffff, .2, 150);
+bluePoint.position.set( 0, 10, 0 );
+scene.add(bluePoint);
+scene.add(new THREE.PointLightHelper(bluePoint, 3));
 
 var controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.minDistance = 2;
@@ -43,14 +49,15 @@ setUpObjects();
 $("#whitescreen").fadeOut("slow");
 animate();
 
+updateText("hold on...", "choose something that catches your eye."); 
 
 function setUpObjects() {
     //adding shelves
     for (i = 0; i < 3; i++) {
         shelf = new Physijs.BoxMesh(
             new THREE.CubeGeometry(10, 0.2, 1.2),
-            new THREE.MeshPhongMaterial({
-                color: 0xaaaaff
+            new THREE.MeshLambertMaterial({
+                color: 0xcccccc
             }),
             0 //mass of zero means no gravity
         );
@@ -106,7 +113,6 @@ function animate() {
 function onMouseDown(event) {
     // calculate mouse position in normalized device coordinates 
     // (-1 to +1) for both components 
-    if (unclickable) return;
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     rendermd();
@@ -114,13 +120,13 @@ function onMouseDown(event) {
 
 //loads objects in at position x, y, z. 
 function addToScene(x, y, z, index) {
-    loader.load("./" + objectnames[index] + ".json", function(geometry, material) {
+    loader.load("./models/" + objectnames[index] + ".json", function(geometry, material) {
         mesh = new Physijs.BoxMesh(geometry, material);
         mesh.scale.set(.5, .5, .5)
         mesh.position.x = x;
         mesh.position.y = y;
         mesh.castShadow = true;
-        mesh.mass = 100;
+        mesh.mass = 1000;
         mesh.userData.id = "breakable";
         objects[index] = mesh;
         scene.add(mesh);
@@ -130,14 +136,15 @@ function addToScene(x, y, z, index) {
 //loads cell fractured version of object. 
 function addToSceneBroken(x, y, z, name) {
     var brokenloader = new THREE.ObjectLoader();
-    brokenloader.load("./" + name + "broken.json", function(loaded) {
+    brokenloader.load("./models/" + name + "broken.json", function(loaded) {
         while (loaded.children.length > 0) //go through each element of the scene 
         {
             var child = loaded.children.pop();
             mesh = new Physijs.BoxMesh(child.geometry, child.material)
             mesh.scale.set(.5, .5, .5)
-            mesh.position.x = x;
-            mesh.position.y = y;
+            mesh.position.x = x - child.position.x;
+            mesh.position.y = y - child.position.y;
+            mesh.position.z = - child.position.z; 
             mesh.userData.id = "unbreakable";
             mesh.castShadow = true;
             scene.add(mesh);
@@ -157,7 +164,7 @@ function rendermd() {
         var i = (clicked.position.x + 4) / 2;
         var j = (clicked.position.y - 1) / -2;
         var index = Math.floor(i * 3 + j + .5);
-        if (clicked.userData.id == "breakable") {
+        if (clicked.userData.id == "breakable" && !unclickable) {
             scene.remove(clicked);
             objects[index] = null;
             addToSceneBroken(clicked.position.x, clicked.position.y, clicked.position.z, objectnames[index]);
@@ -180,54 +187,55 @@ function progress() {
     var loader = new THREE.FontLoader();
     switch (numbroken) {
         case 1:
-            updateText("hi", "bye");
+            updateText("...", "choose something that you really, really hate.");
             break;
         case 2:
-            updateText("hello", "bello");
+            updateText("why do you hate me?", "now choose something you love.");
             break;
         case 3:
-            updateText("mello", "yello");
+            updateText("why didn't you protect me?", "do you love anything else?");
             break;
         case 4:
-            updateText("mello", "yello");
+            updateText("again?", "choose something that reminds you of your mother.");
             break;
         case 5:
-            updateText("mello", "yello");
+            updateText("was i too ____?", "choose something that reminds you of your father.");
             break;
         case 6:
-            updateText("mello", "yello");
+            updateText("did i forget to ____?", "choose something you would like as a gift.");
             break;
         case 7:
-            updateText("mello", "yello");
+            updateText("you like me because ____", "choose something funny.");
             break;
         case 8:
-            updateText("mello", "yello");
+            updateText("why did i make you smile?", "blink five times rapidly and choose the first thing you see.");
             break;
         case 9:
-            updateText("mello", "yello");
+            updateText("why did you see me?", "choose something that fills you with sadness.");
             break;
         case 10:
-            updateText("mello", "yello");
+            updateText("im sorry.", "choose something for the sake of choosing something.");
             break;
         case 11:
-            updateText("mello", "yello");
+            updateText("why me?", "choose something for a person you love");
             break;
         case 12:
-            updateText("mello", "yello");
+            updateText("my true feelings are ____", "choose the most desirable thing you see.");
             break;
         case 13:
-            updateText("mello", "yello");
+            updateText("...", "choose");
             break;
         case 14:
             unclickable = true;
             setTimeout(function() {
                 endscreen();
-            }, 1000);
+            }, 2000);
     }
 }
 
 //switch in camera after the second to last object falls
 function endscreen() {
+    updateText("", "good job.");
     var last = null;
     for (var i = 0; i < objects.length; i++) {
         if (objects[i] != null)
@@ -252,11 +260,17 @@ function endscreen() {
 }
 
 //gives 3 seconds of text1, then switches to text2
-function updateText(text1, text2) {
+function updateText(small, big) {
     unclickable = true;
-    document.getElementById("info").innerHTML = text1;
-    setTimeout(function() {
-        document.getElementById("info").innerHTML = text2;
-        unclickable = false;
-    }, 3000);
+    document.getElementById("text2").innerHTML = small;
+    $("#text1").fadeOut("slow");
+     setTimeout(function() {
+        $("#text2").fadeIn("slow");
+        setTimeout(function() {
+            document.getElementById("text1").innerHTML = big;
+            $("#text1").fadeIn("slow");
+            $("#text2").fadeOut("slow");
+            unclickable = false;
+        }, 1500); 
+     }, 500); 
 }
