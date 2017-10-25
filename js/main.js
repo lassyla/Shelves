@@ -5,7 +5,7 @@ var unclickable = false;
 var numbroken = 0;
 var shelves = []
 var objects = [];
-var objectnames = ["sliug", "pie", "sliug", "mountain", "sliug", "cup", "ball", "books", "spider", "sliug", "plant", "tetra", "random", "phone", "sliug"];
+var objectnames = ["pig", "pie", "tomato", "random", "globe", "cup", "can", "books", "spider", "house", "plant", "mountain", "bear", "phone", "bomb"];
 
 Physijs.scripts.worker = './js/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
@@ -237,7 +237,7 @@ function progress() {
             updateText("my true feelings are ____.", "choose the most desirable thing you see.");
             break;
         case 13:
-            updateText("...", "choose the thing that isn't the worst.");
+            updateText("...", "choose one more thing.");
             break;
         case 14:
             unclickable = true;
@@ -249,7 +249,7 @@ function progress() {
 
 //switch in camera after the second to last object falls
 function endscreen() {
-    updateText("", "");
+    updateText("", "here is your choice. are you happy with it?");
     var last = null;
     for (var i = 0; i < objects.length; i++) {
         if (objects[i] != null)
